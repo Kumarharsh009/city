@@ -1,8 +1,9 @@
-fastapi>=0.115,<1
-uvicorn[standard]>=0.30,<1
-geopandas>=1.0.1
-networkx>=2.5
-numpy>=1.24
-pandas>=1.5
-requests>=2.30
-shapely>=2.0
+fastapi
+uvicorn
+osmnx
+networkx
+geopandas
+shapely
+pyproj
+rtree
+matplotlib

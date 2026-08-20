@@ -25,13 +25,13 @@ if TYPE_CHECKING:
 scipy: ModuleType | None
 try:
     import scipy
-except ImportError:  # pragma: no cover
+except Exception:  # pragma: no cover
     scipy = None
 
 # scikit-learn is optional dependency for unprojected nearest-neighbor search
 try:
     from sklearn.neighbors import BallTree
-except ImportError:  # pragma: no cover
+except Exception:  # pragma: no cover
     BallTree = None
 
 EARTH_RADIUS_M = 6_371_009

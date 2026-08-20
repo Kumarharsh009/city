@@ -15,13 +15,7 @@ import requests
 app = FastAPI(title="GeoAI Smart City Platform")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:5501",
-        "http://127.0.0.1:5501",
-        "https://city-1-6jst.onrender.com",
-    ],
+    allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["GET", "OPTIONS"],
     allow_headers=["*"],

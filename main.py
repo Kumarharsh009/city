@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 import osmnx as ox
 import networkx as nx
+import requests
 
 app = FastAPI(title="GeoAI Smart City Platform")
 app.add_middleware(
@@ -27,7 +28,7 @@ def home() -> dict[str, object]:
         "status": "ok",
         "message": "GeoAI Smart City Platform is running",
         "docs": "/docs",
-        "map_example": "/map?city=Ranchi%2C%20India&origin=Ranchi%20Railway%20Station&destination=Firayalal%20Chowk%2C%20Ranchi",
+        "map_example": "/map?city=any%20region&origin=origin%20place&destination=destination%20place",
     }
 
 
@@ -151,43 +152,56 @@ def get_route(city: str, origin: str, destination: str):
     if route_key in _route_cache:
         return _route_cache[route_key]
 
-    G = get_graph(city)
-
     orig_lat, orig_lon = geocode_place(origin, city)
     dest_lat, dest_lon = geocode_place(destination, city)
-    _ensure_location_in_graph(G, origin, orig_lat, orig_lon, city)
-    _ensure_location_in_graph(G, destination, dest_lat, dest_lon, city)
+    try:
+        response = requests.get(
+            "https://router.project-osrm.org/route/v1/driving/"
+            f"{orig_lon},{orig_lat};{dest_lon},{dest_lat}",
+            params={"overview": "full", "geometries": "geojson", "steps": "true"},
+            timeout=30,
+        )
+        response.raise_for_status()
+        routing_data = response.json()
+    except requests.RequestException as error:
+        raise HTTPException(
+            status_code=502,
+            detail="The global routing service is temporarily unavailable. Please try again.",
+        ) from error
 
-    orig_node = ox.nearest_nodes(G, orig_lon, orig_lat)
-    dest_node = ox.nearest_nodes(G, dest_lon, dest_lat)
-    route = nx.shortest_path(G, orig_node, dest_node, weight="length")
+    if routing_data.get("code") != "Ok" or not routing_data.get("routes"):
+        raise HTTPException(
+            status_code=422,
+            detail=f"No drivable route was found between '{origin}' and '{destination}'.",
+        )
 
-    route_gdf = ox.routing.route_to_gdf(G, route)
+    selected_route = routing_data["routes"][0]
+    route_coordinates = selected_route["geometry"]["coordinates"]
     streets = []
-    for value in route_gdf["name"].tolist() if "name" in route_gdf else []:
-        name = _clean_street_name(value) or "Unnamed road"
-        if not streets or streets[-1] != name:
-            streets.append(name)
+    for leg in selected_route.get("legs", []):
+        for step in leg.get("steps", []):
+            name = _clean_street_name(step.get("name")) or "Unnamed road"
+            if not streets or streets[-1] != name:
+                streets.append(name)
     if not streets:
-        streets = ["Unnamed road"] * len(route_gdf)
+        streets = ["Unnamed road"]
 
-    # Build a GeoJSON LineString of the whole route (for map frontends)
     geojson = {
         "type": "Feature",
-        "properties": {"city": city, "streets": streets},
+        "properties": {"city": city, "origin": origin, "destination": destination, "streets": streets},
         "geometry": {
             "type": "LineString",
-            "coordinates": [[G.nodes[n]["x"], G.nodes[n]["y"]] for n in route]
+            "coordinates": route_coordinates,
         }
     }
 
-    total_length_m = sum(route_gdf["length"])
-
     route_data = {
         "city": city,
-        "route_nodes": route,
+        "origin": {"name": origin, "lat": orig_lat, "lon": orig_lon},
+        "destination": {"name": destination, "lat": dest_lat, "lon": dest_lon},
+        "route_nodes": list(range(len(route_coordinates))),
         "streets": streets,
-        "distance_m": round(total_length_m, 1),
+        "distance_m": round(selected_route["distance"], 1),
         "geojson": geojson
     }
     _route_cache[route_key] = route_data

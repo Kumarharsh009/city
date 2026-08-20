@@ -15,9 +15,15 @@ import requests
 app = FastAPI(title="GeoAI Smart City Platform")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5501",
+        "http://127.0.0.1:5501",
+        "https://city-1-6jst.onrender.com",
+    ],
     allow_credentials=False,
-    allow_methods=["GET"],
+    allow_methods=["GET", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -30,6 +36,11 @@ def home() -> dict[str, object]:
         "docs": "/docs",
         "map_example": "/map?city=any%20region&origin=origin%20place&destination=destination%20place",
     }
+
+
+@app.get("/healthz")
+def healthz() -> dict[str, str]:
+    return {"status": "ok"}
 
 
 # ---------------------------------------------------------

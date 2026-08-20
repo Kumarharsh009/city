@@ -111,6 +111,36 @@ def geocode_place(place: str, city: str) -> tuple[float, float]:
     )
 
 
+def _ensure_location_in_graph(
+    graph: nx.MultiDiGraph,
+    location: str,
+    latitude: float,
+    longitude: float,
+    city: str,
+) -> None:
+    """Prevent a place outside the selected city's graph being snapped locally."""
+    longitudes = [data["x"] for _, data in graph.nodes(data=True)]
+    latitudes = [data["y"] for _, data in graph.nodes(data=True)]
+    if not longitudes or not latitudes:
+        raise HTTPException(status_code=422, detail=f"The road graph for '{city}' is empty.")
+
+    # A small margin allows geocoded landmarks just beyond a place boundary.
+    margin = 0.05
+    in_graph = (
+        min(longitudes) - margin <= longitude <= max(longitudes) + margin
+        and min(latitudes) - margin <= latitude <= max(latitudes) + margin
+    )
+    if not in_graph:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"'{location}' is outside the selected road network for '{city}'. "
+                f"Choose a city or region containing both locations. "
+                f"For example, use 'Mumbai, India' when measuring access to a Mumbai place."
+            ),
+        )
+
+
 # ---------------------------------------------------------
 # 1. ROUTE (Emergency Route Optimizer) — now returns GeoJSON
 #    Accepts place NAMES, not raw coordinates.
@@ -125,6 +155,8 @@ def get_route(city: str, origin: str, destination: str):
 
     orig_lat, orig_lon = geocode_place(origin, city)
     dest_lat, dest_lon = geocode_place(destination, city)
+    _ensure_location_in_graph(G, origin, orig_lat, orig_lon, city)
+    _ensure_location_in_graph(G, destination, dest_lat, dest_lon, city)
 
     orig_node = ox.nearest_nodes(G, orig_lon, orig_lat)
     dest_node = ox.nearest_nodes(G, dest_lon, dest_lat)
@@ -227,6 +259,7 @@ def get_accessibility(city: str, target: str, sample: int = 10):
 
     G = get_graph(city)
     target_lat, target_lon = geocode_place(target, city)
+    _ensure_location_in_graph(G, target, target_lat, target_lon, city)
     target_node = ox.nearest_nodes(G, target_lon, target_lat)
     lengths = nx.shortest_path_length(G, target=target_node, weight="length")
 

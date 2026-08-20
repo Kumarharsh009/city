@@ -8,10 +8,15 @@ Full documentation at: https://osmnx.readthedocs.io
 If you use OSMnx in your work, please cite: https://doi.org/10.1111/gean.70009
 """
 
+from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as metadata_version
 
 # expose the package version
-__version__ = metadata_version("osmnx")
+try:
+	__version__ = metadata_version("osmnx")
+except PackageNotFoundError:
+	# The backend can run directly from the checked-in source tree.
+	__version__ = "2.1.1"
 
 # expose the package's public modules
 from . import _errors as _errors

@@ -4,15 +4,27 @@ FastAPI backend for route, connectivity, busy-intersection, service-reachability
 
 ## Railway deployment
 
-Railway detects the included `railway.json` start command automatically. The service listens on Railway's assigned `$PORT`.
+Railway detects the included `railway.json` start command automatically and installs the root `requirements.txt`. The service listens on Railway's assigned `$PORT`.
 
 Required build/runtime files:
 
 - `main.py` - FastAPI application
-- `requirements-backend.txt` - Python dependencies
+- `requirements.txt` - Railway Python dependencies
+- `requirements-backend.txt` - equivalent local backend dependency file
 - `pyproject.toml` and `osmnx/` - local OSMnx package
 
 The first request for a city downloads its road graph. Graphs are stored in `cache/graphs/`; attach a persistent Railway volume at `/app/cache` if you want to retain them across deployments.
+
+## Render deployment
+
+Render uses the included `render.yaml`, or enter these commands manually:
+
+```bash
+pip install -r requirements.txt
+uvicorn main:app --host 0.0.0.0 --port $PORT
+```
+
+Use a Render **Web Service**, not a background worker. Render supplies `$PORT` automatically.
 
 ## API endpoints
 

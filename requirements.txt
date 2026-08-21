@@ -6,4 +6,3 @@ geopandas
 shapely
 pyproj
 rtree
-matplotlib

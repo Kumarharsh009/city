@@ -15,7 +15,7 @@ import requests
 app = FastAPI(title="GeoAI Smart City Platform")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://classy-cendol-b8581c.netlify.app"],
+    allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["GET", "OPTIONS"],
     allow_headers=["*"],

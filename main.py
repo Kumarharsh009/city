@@ -95,7 +95,7 @@ def get_graph(city: str) -> nx.MultiDiGraph:
         else:
             print(f"Downloading graph for {city} (not cached yet)...")
             lat, lon = ox.geocode(city)
-            graph = ox.graph_from_point((lat, lon), dist=8000, network_type="drive")
+            graph = ox.graph_from_point((lat, lon), dist=2000, network_type="drive")
             ox.save_graphml(graph, graph_path)
         _graph_cache[city_key] = graph
         return graph

@@ -12,6 +12,11 @@ import osmnx as ox
 import networkx as nx
 import requests
 
+
+ox.settings.overpass_endpoint = "https://overpass.kumi.systems/api/interpreter"
+ox.settings.overpass_rate_limit = True
+ox.settings.requests_timeout = 180  # Overpass can be slow for large city queries
+
 app = FastAPI(title="GeoAI Smart City Platform")
 app.add_middleware(
     CORSMiddleware,

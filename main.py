@@ -32,6 +32,7 @@ async def catch_all_exception_handler(request, exc):
     return JSONResponse(
         status_code=500,
         content={"detail": f"Internal server error: {str(exc)}"},
+        headers={"Access-Control-Allow-Origin": "*"},
     )
 
 
@@ -90,13 +91,22 @@ def get_graph(city: str) -> nx.MultiDiGraph:
         _graph_cache_dir.mkdir(parents=True, exist_ok=True)
         city_slug = re.sub(r"[^a-z0-9]+", "_", city_key).strip("_")[:120]
         graph_path = _graph_cache_dir / f"{city_slug or 'city'}.graphml"
-        if graph_path.exists():
-            graph = ox.load_graphml(graph_path)
-        else:
-            print(f"Downloading graph for {city} (not cached yet)...")
-            lat, lon = ox.geocode(city)
-            graph = ox.graph_from_point((lat, lon), dist=2000, network_type="drive")
-            ox.save_graphml(graph, graph_path)
+        try:
+            if graph_path.exists():
+                graph = ox.load_graphml(graph_path)
+            else:
+                print(f"Downloading graph for {city} (not cached yet)...")
+                lat, lon = ox.geocode(city)
+                graph = ox.graph_from_point((lat, lon), dist=2000, network_type="drive")
+                ox.save_graphml(graph, graph_path)
+        except Exception as error:
+            raise HTTPException(
+                status_code=504,
+                detail=(
+                    f"The road network for '{city}' could not be loaded. "
+                    "Try again or choose a smaller city or region."
+                ),
+            ) from error
         _graph_cache[city_key] = graph
         return graph
 

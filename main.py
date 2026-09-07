@@ -15,13 +15,15 @@ import requests
 
 _overpass_endpoints = (
     "https://overpass-api.de/api",
+    "https://overpass.nchc.org.tw/api",
+    "https://overpass.private.coffee/api",
     "https://overpass.kumi.systems/api",
 )
 ox.settings.overpass_url = _overpass_endpoints[0]
 ox.settings.nominatim_url = "https://nominatim.openstreetmap.org/"
 ox.settings.overpass_rate_limit = True
-ox.settings.requests_timeout = 10
-ox.settings.overpass_settings = "[out:json][timeout:10]"
+ox.settings.requests_timeout = 8
+ox.settings.overpass_settings = "[out:json][timeout:8]"
 
 app = FastAPI(title="GeoAI Smart City Platform")
 app.add_middleware(
@@ -103,7 +105,7 @@ def get_graph(city: str) -> nx.MultiDiGraph:
                 print(f"Downloading graph for {city} (not cached yet)...")
                 lat, lon = ox.geocode(city)
                 last_error = None
-                for endpoint, radius in zip(_overpass_endpoints, (1000, 500)):
+                for endpoint, radius in zip(_overpass_endpoints, (1000, 750, 500, 300)):
                     try:
                         ox.settings.overpass_url = endpoint
                         graph = ox.graph_from_point((lat, lon), dist=radius, network_type="drive")
